@@ -1,0 +1,1875 @@
+DOCKER CLI COMMANDS
+# DOCKER CLI 
+# General syntax:
+# docker COMMAND [SUBCOMMAND] [OPTIONS] [ARGUMENTS]
+# Help:
+docker --help
+docker COMMAND --help
+# 1. DOCKER VERSION, ENGINE AND CONTEXT
+docker --version
+docker version
+docker info
+docker system info
+docker context ls
+docker context show
+docker context inspect
+docker context use CONTEXT
+# 2. DOCKER IMAGES
+# List images
+docker images
+docker image ls
+docker images -a
+docker images -q
+
+# Pull/download images
+docker pull nginx
+docker pull nginx:alpine
+docker pull ubuntu:22.04
+docker pull --platform linux/amd64 nginx:alpine
+
+# Search images on Docker Hub
+docker search nginx
+docker search --limit 10 nginx
+docker search --filter is-official=true nginx
+
+# Inspect image
+docker image inspect nginx
+docker image inspect --format='{{.Id}}' nginx
+docker history nginx
+docker image history nginx
+
+# Tag image
+docker tag nginx mynginx:v1
+docker tag SOURCE_IMAGE TARGET_IMAGE:TAG
+
+# Remove images
+docker rmi nginx
+docker rmi nginx:alpine
+docker rmi -f IMAGE
+docker image rm IMAGE
+docker image prune
+docker image prune -a
+
+
+# Save/load images
+docker save -o image.tar nginx:alpine
+docker load -i image.tar
+
+# Export/import container filesystem
+docker export -o filesystem.tar CONTAINER
+docker import filesystem.tar imported-image:v1
+
+# Image manifest
+docker manifest inspect nginx:alpine
+
+# 3. CREATE AND RUN CONTAINERS
+# Basic run
+docker run nginx
+
+# Detached/background mode
+docker run -d nginx
+
+# Named container
+docker run -d --name myweb nginx
+
+# Interactive terminal
+docker run -it ubuntu bash
+docker run -it alpine sh
+
+# Port mapping: HOST_PORT:CONTAINER_PORT
+docker run -d -p 8080:80 nginx
+docker run -d --name web -p 8080:80 nginx
+docker run -d -p 8081:80 -p 8443:443 nginx
+docker run -d -p 127.0.0.1:8080:80 nginx
+
+# Publish all exposed ports to random host ports
+docker run -d -P nginx
+
+# Automatically remove container after exit
+docker run --rm alpine echo Hello
+
+# Environment variables
+docker run -d -e APP_MODE=test nginx
+docker run -d -e USER=admin -e MODE=test nginx
+docker run --env-file .env nginx
+
+# Restart policies
+docker run -d --restart no nginx
+docker run -d --restart always nginx
+docker run -d --restart unless-stopped nginx
+docker run -d --restart on-failure:5 nginx
+
+# Working directory and user
+docker run -it --workdir /tmp ubuntu bash
+docker run -it --user 1000:1000 ubuntu bash
+
+# Container resource limits (where supported)
+docker run -d --memory 512m --cpus 1 nginx
+# Container hostname
+docker run -d --hostname myhost nginx
+
+# Read-only container root filesystem
+docker run -d --read-only nginx
+
+# Run a specific command
+docker run alpine echo Hello
+docker run alpine sh -c "echo Hello && sleep 5"
+
+# 4. LIST AND FILTER CONTAINERS
+docker ps
+docker ps -a
+docker ps -q
+docker ps -aq
+docker ps -s
+docker ps --no-trunc
+
+# Filter containers
+docker ps --filter "status=running"
+docker ps --filter "status=exited"
+docker ps --filter "name=web"
+docker ps --filter "ancestor=nginx"
+
+# Format output
+docker ps --format "{{.ID}} {{.Names}} {{.Status}}"
+docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Ports}}"
+
+# 5. START, STOP, RESTART, PAUSE, REMOVE
+docker start CONTAINER
+docker stop CONTAINER
+docker restart CONTAINER
+docker pause CONTAINER
+docker unpause CONTAINER
+docker kill CONTAINER
+docker rm CONTAINER
+docker rm -f CONTAINER
+docker rm -v CONTAINER
+docker rename OLD_NAME NEW_NAME
+
+# Stop all running containers (Bash)
+docker stop $(docker ps -q)
+
+# Remove all containers (Bash)
+docker rm $(docker ps -aq)
+
+# PowerShell equivalents
+docker ps -q | ForEach-Object { docker stop $_ }
+docker ps -aq | ForEach-Object { docker rm $_ }
+
+# Remove stopped containers
+docker container prune
+
+
+# 6. EXECUTE COMMANDS INSIDE CONTAINERS
+# Execute a command
+docker exec CONTAINER ls /
+docker exec CONTAINER pwd
+docker exec CONTAINER printenv
+
+# Open a shell
+docker exec -it CONTAINER bash
+docker exec -it CONTAINER sh
+
+# Execute as a user
+docker exec -u 0 -it CONTAINER sh
+docker exec -u USERNAME CONTAINER whoami
+
+# Set environment variable for this execution
+docker exec -e MODE=test CONTAINER printenv MODE
+
+# Set working directory
+docker exec -w /tmp CONTAINER pwd
+
+# Attach to the main process streams
+docker attach CONTAINER
+
+# 7. INSPECT, MONITOR AND DEBUG
+docker inspect CONTAINER
+docker inspect IMAGE
+docker inspect --type container CONTAINER
+docker inspect -f "{{.State.Status}}" CONTAINER
+docker inspect -f "{{.State.Running}}" CONTAINER
+docker inspect -f "{{.Config.Image}}" CONTAINER
+docker inspect -f "{{.HostConfig.RestartPolicy.Name}}" CONTAINER
+docker inspect -f "{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}" CONTAINER
+
+# Logs
+docker logs CONTAINER
+docker logs -f CONTAINER
+docker logs -t CONTAINER
+docker logs --tail 20 CONTAINER
+docker logs --since 10m CONTAINER
+docker logs --until 2026-10-13T17:00:00 CONTAINER
+docker logs --tail 50 -f CONTAINER
+
+# Resource monitoring
+docker stats
+docker stats CONTAINER
+docker stats --no-stream
+
+# Processes, ports and filesystem changes
+docker top CONTAINER
+docker port CONTAINER
+docker diff CONTAINER
+
+# Copy files
+docker cp index.html CONTAINER:/tmp/index.html
+docker cp CONTAINER:/etc/hostname ./hostname.txt
+
+# Wait for container exit and return exit code
+docker wait CONTAINER
+
+# Update settings
+docker update --restart unless-stopped CONTAINER
+docker update --memory 512m --cpus 1 CONTAINER
+
+# 8. NETWORKING
+docker network ls
+docker network create mynetwork
+docker network create --driver bridge mynetwork
+docker network inspect mynetwork
+docker network connect mynetwork CONTAINER
+docker network disconnect mynetwork CONTAINER
+docker network rm mynetwork
+docker network prune
+
+# Run containers on a user-defined network
+docker run -d --name web1 --network mynetwork nginx
+docker run -d --name web2 --network mynetwork nginx
+
+# Host networking (platform-dependent)
+docker run -d --network host nginx
+
+# Disable normal container networking
+docker run --network none alpine
+
+# 9. VOLUMES AND BIND MOUNTS
+docker volume ls
+docker volume create mydata
+docker volume inspect mydata
+docker volume rm mydata
+docker volume prune
+
+# Named volume: VOLUME_NAME:CONTAINER_PATH
+docker run -d --name db -v mydata:/data IMAGE
+
+# Equivalent explicit mount syntax
+docker run -d --name db --mount source=mydata,target=/data IMAGE
+
+# Bind mount: HOST_PATH:CONTAINER_PATH
+docker run -d --name web -v "D:\mywebsite:/usr/share/nginx/html:ro" nginx
+
+# Read-only bind mount
+docker run -d --mount type=bind,source=/HOST/PATH,target=/data,readonly IMAGE
+
+# 10. DOCKERFILE AND IMAGE BUILDING
+# Build from Dockerfile in current directory
+docker build -t myapp:v1 .
+
+# Specify a Dockerfile
+docker build -f Dockerfile.dev -t myapp:dev .
+
+# Build without cache
+docker build --no-cache -t myapp:v2 .
+
+# Pull latest tagged image
+docker pull nginx:latest
+
+# Tag, log in and push to registry
+docker login
+docker login registry.example.com
+docker tag myapp:v1 YOUR_USERNAME/myapp:v1
+docker push YOUR_USERNAME/myapp:v1
+docker logout
+docker logout registry.example.com
+
+# Create image from container changes
+docker commit CONTAINER myapp:snapshot
+
+# 11. DOCKER COMPOSE
+docker compose version
+docker compose --help
+
+# Validate/resolved YAML
+docker compose config
+docker compose config --services
+docker compose config --images
+
+# Build images
+docker compose build
+docker compose build --no-cache
+docker compose build SERVICE
+
+# Pull service images
+docker compose pull
+
+# Start/deploy
+docker compose up
+docker compose up -d
+docker compose up -d --build
+docker compose up -d SERVICE
+
+# Status and logs
+docker compose ps
+docker compose ps -a
+docker compose images
+docker compose logs
+docker compose logs -f
+docker compose logs --tail 50 SERVICE
+
+# Execute commands
+docker compose exec SERVICE sh
+docker compose exec SERVICE bash
+docker compose exec -u root SERVICE sh
+docker compose run --rm SERVICE COMMAND
+
+# Lifecycle
+docker compose stop
+docker compose stop SERVICE
+docker compose start
+docker compose restart
+docker compose restart SERVICE
+docker compose kill
+docker compose rm
+docker compose down
+docker compose down -v
+
+# Other useful commands
+docker compose top
+docker compose port SERVICE CONTAINER_PORT
+docker compose pull SERVICE
+docker compose push SERVICE
+
+# Specify another Compose file
+docker compose -f compose.yaml up -d
+docker compose -f compose.dev.yaml up -d
+
+# 12. SYSTEM AND CLEANUP
+docker system df
+docker system df -v
+docker system prune
+docker system prune -a
+docker system prune -a --volumes
+
+docker container prune
+docker image prune
+docker image prune -a
+docker network prune
+docker volume prune
+docker builder prune
+
+# 13. REGISTRY AND EVENTS
+docker login
+docker logout
+docker search nginx
+docker pull nginx
+docker push YOUR_USERNAME/myapp:v1
+docker events
+docker events --since 10m
+docker events --filter type=container
+
+# 14. DOCKER SWARM (IF IN SYLLABUS)
+docker swarm init
+docker swarm join-token worker
+docker swarm join-token manager
+docker swarm leave
+docker swarm leave --force
+
+docker node ls
+docker service create --name web -p 8080:80 --replicas 3 nginx
+docker service ls
+docker service ps web
+docker service scale web=3
+docker service logs web
+docker service rm web
+
+docker stack deploy -c compose.yaml mystack
+docker stack ls
+docker stack services mystack
+docker stack ps mystack
+docker stack rm mystack
+
+# 15. COMPLETE PRACTICAL WORKFLOW
+docker --version
+docker pull nginx:alpine
+docker images
+docker run -d --name examweb -p 8080:80 nginx:alpine
+docker ps
+docker port examweb
+docker inspect examweb
+docker logs examweb
+docker stats --no-stream
+docker exec -it examweb sh
+docker stop examweb
+docker ps -a
+docker rm examweb
+docker images
+
+# IMPORTANT:
+# 1. Replace placeholders with actual names and values.
+# 2. Bash command substitution does not work as written in PowerShell.
+# 3. Some options depend on Docker Engine version/platform.
+# 4. Cleanup commands can permanently remove data.
+# 5. Check: docker COMMAND --help for exact supported options.
+
+
+D:\DockerLab\
+│
+├── app.py
+├── requirements.txt
+└── Dockerfile
+
+app.py:
+from flask import Flask
+app = Flask(__name__)
+@app.route("/")
+def home():
+    return "Hello from Docker!"
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)
+
+requirements.txt:
+flask
+
+DOCKER FILE
+FROM python:3.12-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
+EXPOSE 5000
+
+DEPLOY:
+#build image
+docker build -t webapp:v1 .
+#run the container
+docker run -d --name web-container -p 8080:5000 webapp:v1
+
+NODEJS DOCKERFILE:
+FROM node:22
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+EXPOSE 3000
+CMD ["node", "server.js"]
+
+docker build -t nodeapp .
+docker run -d -p 8080:3000 nodeapp
+
+JAVA DOCKER FILE:
+FROM eclipse-temurin:21-jre
+WORKDIR /app
+COPY app.jar .
+EXPOSE 8080
+CMD ["java", "-jar", "app.jar"]
+
+docker build -t javaapp .
+docker run -d -p 8081:8080 javaapp
+
+DOCKER COMPOSE:
+COMPOSE.YAML:(WHEN DOCKER FILE IS CREATED)
+services:
+  frontend:
+    build: ./frontend
+    image: frontend-app:v1
+    container_name: frontend-container
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    networks:
+      - app-network
+    restart: unless-stopped
+  backend:
+    build: ./backend
+    image: backend-app:v1
+    container_name: backend-container
+    ports:
+      - "5000:5000"
+    environment:
+      DB_HOST: database
+      DB_PORT: "5432"
+      DB_NAME: studentdb
+      DB_USER: admin
+      DB_PASSWORD: admin123
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - app-network
+    restart: unless-stopped
+  database:
+    image: postgres:17
+    container_name: database-container
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_DB: studentdb
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d studentdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+    restart: unless-stopped
+volumes:
+  dbdata:
+networks:
+  app-network:
+    driver: bridge
+
+DEPLOY:
+docker compose up --build -d
+http://localhost:8081
+
+COMPOSE.YAML(WHEN DOCKER FILE IS NOT CREATED)
+services:
+  frontend:
+    image: nginx:alpine
+    container_name: frontend-container
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    networks:
+      - app-network
+    restart: unless-stopped
+  backend:
+    image: kennethreitz/httpbin
+    container_name: backend-container
+    ports:
+      - "5000:80"
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - app-network
+    restart: unless-stopped
+  database:
+    image: postgres:17
+    container_name: database-container
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_DB: studentdb
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d studentdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+    restart: unless-stopped
+volumes:
+  dbdata:
+networks:
+  app-network:
+    driver: bridge
+
+KUBERNETES CLI COMMANDS
+# 1. CLUSTER INFORMATION
+kubectl version
+kubectl cluster-info
+kubectl get nodes
+kubectl get namespaces
+kubectl config current-context
+kubectl config get-contexts
+
+# 2. BASIC RESOURCE LISTING
+kubectl get all
+kubectl get pods
+kubectl get pods -o wide
+kubectl get deployments
+kubectl get replicasets
+kubectl get services
+kubectl get svc
+kubectl get ingress
+kubectl get endpoints
+kubectl get events
+
+# List resources in a particular namespace
+kubectl get pods -n default
+kubectl get all -n default
+
+# Get resources with labels
+kubectl get pods --show-labels
+kubectl get pods -l app=nginx
+kubectl get pods -l tier=frontend
+kubectl get pods -l tier=backend
+
+# 3. CREATE A POD IMPERATIVELY
+kubectl run web-server --image=nginx:1.27-alpine
+kubectl get pod web-server
+kubectl describe pod web-server
+kubectl delete pod web-server
+
+# 4. APPLY YAML CONFIGURATION
+kubectl apply -f .\web-server.yaml
+kubectl apply -f .\nginx-deployment.yaml
+kubectl apply -f .\web-stack.yaml
+
+# Validate YAML against the cluster without applying changes
+kubectl apply --dry-run=server -f .\web-stack.yaml
+
+# Preview differences between YAML and live configuration
+kubectl diff -f .\web-stack.yaml
+
+# 5. POD INSPECTION AND TROUBLESHOOTING
+kubectl describe pod <pod-name>
+kubectl logs <pod-name>
+kubectl logs <pod-name> --follow
+kubectl logs <pod-name> --previous
+kubectl exec <pod-name> -- <command>
+kubectl get pods -o wide
+kubectl get events --sort-by=.metadata.creationTimestamp
+
+# Open a shell inside a container, if the image supports it
+kubectl exec -it <pod-name> -- sh
+
+# 6. DEPLOYMENTS AND REPLICAS
+kubectl create deployment nginx-demo --image=nginx:1.27-alpine
+kubectl get deployments
+kubectl describe deployment nginx-demo
+kubectl rollout status deployment/nginx-demo
+kubectl rollout history deployment/nginx-demo
+
+# Scale a Deployment to 6 replicas
+kubectl scale deployment nginx-deployment --replicas=6
+
+# Scale by Deployment label selector
+kubectl scale deployment -l app=nginx-demo --replicas=6
+
+# Verify replica count
+kubectl get deployment nginx-deployment
+kubectl get pods -l app=nginx-scale
+
+# Change a Deployment's container image
+kubectl set image deployment/nginx-demo nginx=nginx:1.27-alpine
+
+# Restart a Deployment
+kubectl rollout restart deployment/nginx-demo
+
+# Undo the last rollout
+kubectl rollout undo deployment/nginx-demo
+
+# Delete a Deployment
+kubectl delete deployment nginx-demo
+
+# 7. LABELS AND SELECTORS
+kubectl get pods --show-labels
+kubectl get pods -l app=nginx-demo
+kubectl get pods -l tier=frontend
+kubectl get pods -l tier=backend
+<pod-name> environment=test
+
+# 8. SERVICES
+kubectl get services
+kubectl get svc
+kubectl describe service frontend-service
+kubectl describe service backend-service
+kubectl get endpoints frontend-service backend-service
+
+# Modern endpoint inspection
+kubectl get endpointslices
+kubectl get endpointslices -l kubernetes.io/service-name=frontend-service
+kubectl get endpointslices -l kubernetes.io/service-name=backend-service
+
+# Create a ClusterIP Service for a Deployment
+kubectl expose deployment nginx-demo --name=nginx-service --port=80 --target-port=80 --type=ClusterIP
+
+# Create a NodePort Service
+kubectl expose deployment nginx-demo --name=nginx-nodeport --port=80 --target-port=80 --type=NodePort
+
+# Create a LoadBalancer Service
+kubectl expose deployment nginx-demo --name=nginx-lb --port=80 --target-port=80 --type=LoadBalancer
+
+# Delete a Service
+kubectl delete service nginx-service
+# 9. TEST SERVICE CONNECTIVITY
+# Access a Service from an existing Pod
+kubectl exec deployment/frontend-deployment -- wget -qO- http://frontend-service/
+kubectl exec deployment/backend-deployment -- wget -qO- http://backend-service/
+
+# Access a Service using its ClusterIP
+kubectl get svc frontend-service
+kubectl get svc backend-service
+
+# Forward a Service port to Windows localhost
+kubectl port-forward service/frontend-service 9001:80
+kubectl port-forward service/backend-service 9002:80
+
+# Open these in a browser:
+# http://127.0.0.1:9001/
+# http://127.0.0.1:9002/
+
+# 10. INGRESS
+kubectl get ingress
+kubectl describe ingress <ingress-name>
+kubectl get ingress -o wide
+
+# Apply an Ingress manifest
+kubectl apply -f .\ingress.yaml
+
+# Delete an Ingress
+kubectl delete ingress <ingress-name>
+
+# 11. YAML RESOURCE EXPLANATION / DISCOVERY
+kubectl explain pod
+kubectl explain deployment
+kubectl explain deployment.spec
+kubectl explain service
+kubectl explain service.spec.ports
+kubectl explain ingress
+kubectl explain ingress.spec.rules
+
+# 12. RESOURCE DETAILS IN YAML / JSON
+kubectl get pod <pod-name> -o yaml
+kubectl get deployment nginx-deployment -o yaml
+kubectl get service frontend-service -o yaml
+kubectl get pod <pod-name> -o json
+
+# 13. DELETE RESOURCES
+kubectl delete pod <pod-name>
+kubectl delete deployment <deployment-name>
+kubectl delete service <service-name>
+kubectl delete ingress <ingress-name>
+
+# Delete resources matching a label
+kubectl delete pods -l app=nginx-demo
+
+# 14. QUICK EXAM VERIFICATION
+kubectl get deployments
+kubectl get pods -o wide
+kubectl get services
+kubectl get endpoints
+kubectl get events
+
+# Check frontend/backend replicas
+kubectl rollout status deployment/frontend-deployment
+kubectl rollout status deployment/backend-deployment
+kubectl get pods -l tier=frontend
+kubectl get pods -l tier=backend
+
+# Check six-replica Deployment
+kubectl get deployment nginx-deployment
+kubectl get pods -l app=nginx-scale
+
+KUBERNETES YAML
+Deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-deployment
+  labels:
+    app: myapp
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: myapp
+  template:
+    metadata:
+      labels:
+        app: myapp
+    spec:
+      containers:
+        - name: app-container
+          image: nginx:alpine
+          ports:
+            - containerPort: 80
+
+Service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: app-service
+  labels:
+    app: myapp
+spec:
+  type: NodePort
+  selector:
+    app: myapp
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+      nodePort: 30080
+
+pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: app-pod
+  labels:
+    app: myapp
+spec:
+  containers:
+    - name: app-container
+      image: nginx:alpine
+      ports:
+        - containerPort: 80
+
+ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: app-ingress
+  labels:
+    app: myapp
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: myapp.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: app-service
+                port:
+                  number: 80
+
+DEPLOYMENT
+kubectl apply -f deployment.yaml
+kubectl apply -f service.yaml
+kubectl apply -f pod.yaml
+kubectl apply -f ingress.yaml
+
+CREATE THE KUBERNETES DEPLOYMENT
+kubectl apply -f deployment.yaml
+
+CHECK THE DEPLOYMENT
+kubectl get deployments
+
+CHECK PODS
+kubectl get pods
+
+CREATE KUBERNETES SERVICE
+kubectl apply -f service.yaml
+
+CHECK THE SERVICE
+kubectl get services
+
+CHECK ALL COMMON APPLICATION RESOURCES
+kubectl get all
+
+XML
+Syntax of a user-defined function
+declare function functionName($parameter as dataType)
+as returnType
+{
+    expression
+};
+
+Sample XML — college.xml
+<?xml version="1.0" encoding="UTF-8"?>
+<college>
+    <student id="101">
+        <name>Nitish</name>
+        <age>21</age>
+        <department>CSE</department>
+        <marks>85</marks>
+    </student>
+    <student id="102">
+        <name>Rahul</name>
+        <age>22</age>
+        <department>ECE</department>
+        <marks>78</marks>
+    </student>
+    <student id="103">
+        <name>Anita</name>
+        <age>20</age>
+        <department>CSE</department>
+        <marks>92</marks>
+    </student>
+</college>
+
+XPath cheat sheet
+(: BASIC PATHS :)
+/college/student
+    (: All direct student children of college :)
+//student
+    (: All student elements anywhere below the root :)
+//student/name
+    (: Every student's name element :)
+//name/text()
+    (: Text values of all name elements :)
+//*
+    (: All elements in the document :)
+//student/*
+    (: All direct child elements of each student :)
+(: ATTRIBUTES :)
+//student/@id
+    (: All student id attributes :)
+//student[@id = '101']
+    (: Student with id 101 :)
+//student[@id]
+    (: Students that have an id attribute :)
+(: PREDICATES / FILTERS :)
+//student[department = 'CSE']
+    (: Students in CSE :)
+//student[marks > 80]
+    (: Students with marks above 80 :)
+//student[age > 20]
+    (: Students older than 20 :)
+//student[department = 'CSE' and marks > 80]
+    (: CSE students with marks above 80 :)
+//student[department = 'CSE' or department = 'ECE']
+    (: Students in CSE or ECE :)
+//student[not(department = 'CSE')]
+    (: Students not in CSE :)
+//student[1]
+    (: First matching student per relevant context :)
+(//student)[1]
+    (: First student in the overall result sequence :)
+//student[last()]
+    (: Last student :)
+//student[@id = '101']/name
+    (: Name of student 101 :)
+(: FUNCTIONS :)
+count(//student)
+    (: Number of students: 3 :)
+count(//student[department = 'CSE'])
+    (: Number of CSE students: 2 :)
+sum(//student/marks)
+    (: Total marks: 255 :)
+contains(name, 'Nit')
+    (: Tests whether a name contains Nit; normally used
+       inside a predicate such as //name[contains(., 'Nit')] :)
+starts-with(//student/name[1], 'Nit')
+    (: Tests whether the first student's name starts with Nit :)
+string-length('Nitish')
+    (: Length of string: 6 :)
+normalize-space(//student/name[1])
+    (: Removes leading/trailing whitespace and normalizes
+       internal whitespace :)
+string(//student/name[1])
+    (: Converts the selected node's value to a string :)
+(: AXES :)
+//student/parent::college
+    (: Parent college element :)
+//student[1]/following-sibling::student
+    (: Students following the first student :)
+//student[2]/preceding-sibling::student
+    (: Students before the second student :)
+
+//student[1]/ancestor::college
+    (: Ancestor college element :)
+//student/child::name
+    (: Direct child name elements :)
+
+3. XQuery cheat sheet
+(: 1. Return all student names :)
+for $s in //student
+return $s/name
+(: 2. Return all departments :)
+for $s in //student
+return $s/department
+(: 3. Return names of students with marks above 80 :)
+for $s in //student
+where $s/marks > 80
+return $s/name
+(: 4. Return complete CSE student elements :)
+for $s in //student
+where $s/department = 'CSE'
+return $s
+(: 5. Multiple conditions :)
+for $s in //student
+where $s/department = 'CSE'
+  and $s/marks > 80
+return $s/name
+(: 6. Sort by marks ascending :)
+for $s in //student
+order by xs:integer($s/marks)
+return $s/name
+(: 7. Sort by marks descending :)
+for $s in //student
+order by xs:integer($s/marks) descending
+return $s/name
+(: 8. Sort by age :)
+for $s in //student
+order by xs:integer($s/age)
+return $s/name
+(: 9. Store a value in a variable :)
+let $total := 100
+return $total
+(: 10. Total marks using sum() :)
+let $total := sum(//student/marks)
+return $total
+(: Output: 255 :)
+(: 11. Total marks using for + let + sum :)
+let $marks :=
+    for $s in //student
+    return xs:integer($s/marks)
+return sum($marks)
+(: Output: 255 :)
+(: 12. Calculate bonus for each student :)
+for $s in //student
+let $bonus := xs:integer($s/marks) + 5
+return $bonus
+(: Output: 90, 83, 97 :)
+(: 13. Return name and calculated bonus :)
+for $s in //student
+let $bonus := xs:integer($s/marks) + 5
+return
+    <result>
+        <name>{data($s/name)}</name>
+        <bonus>{$bonus}</bonus>
+    </result>
+(: 14. Calculate average marks :)
+let $total := sum(//student/marks)
+let $count := count(//student)
+return $total div $count
+(: Output: 85 :)
+(: 15. Classify every student :)
+for $s in //student
+return
+    if (xs:integer($s/marks) >= 80)
+    then "Excellent"
+    else "Needs Improvement"
+(: 16. Return student names with their classifications :)
+for $s in //student
+return
+    <result>
+        <name>{data($s/name)}</name>
+        <grade>{
+            if (xs:integer($s/marks) >= 80)
+            then "Excellent"
+            else "Needs Improvement"
+        }</grade>
+    </result>
+(: 17. Create a custom report :)
+<report>
+{
+    for $s in //student
+    order by xs:integer($s/marks) descending
+    return
+        <studentResult>
+            <name>{data($s/name)}</name>
+            <department>{data($s/department)}</department>
+            <marks>{data($s/marks)}</marks>
+        </studentResult>
+}
+</report>
+declare function local:convertCurrency(
+    $rupees as xs:decimal,
+    $currency as xs:string
+) as xs:decimal
+{
+    if ($currency = "USD") then
+        $rupees div 83.0
+
+    else if ($currency = "EUR") then
+        $rupees div 90.0
+
+    else if ($currency = "GBP") then
+        $rupees div 105.0
+
+    else if ($currency = "INR") then
+        $rupees
+
+    else
+        -1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SECTION A: DOCKER PYTHON + ARG + ENV 
+QUESTION:
+Develop a configurable Python web app for development, staging and production.Set version and default port during image build using ARG; choose the environment and/or override port at run time using ENV. Build, run, and verify containers.
+CREATE FOLDER: D:\MS_Practical\scenario1
+FILES: app.py, requirements.txt, Dockerfile
+--- app.py ---
+from flask import Flask
+import os
+app = Flask(__name__)
+@app.route('/')
+def home():
+    return 'Version: ' + os.getenv('APP_VERSION', '1.0') + \
+           ' | Environment: ' + os.getenv('APP_ENV', 'development') + \
+           ' | Port: ' + os.getenv('PORT', '5000')
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=int(os.getenv('PORT', '5000')))
+--- requirements.txt ---
+flask
+--- Dockerfile ---
+FROM python:3.11-slim
+WORKDIR /app
+ARG APP_VERSION=1.0
+ARG APP_PORT=5000
+ENV APP_VERSION=${APP_VERSION}
+ENV PORT=${APP_PORT}
+ENV APP_ENV=development
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY app.py .
+EXPOSE 5000
+CMD ["python", "app.py"]
+--- PowerShell commands (run inside folder containing Dockerfile) ---
+cd D:\MS_Practical\scenario1
+docker build --build-arg APP_VERSION=2.0 --build-arg APP_PORT=5000 -t configurable-app:v2 .
+docker run -d --name dev-app -p 5001:5000 -e APP_ENV=development configurable-app:v2
+docker run -d --name stage-app -p 5002:5000 -e APP_ENV=staging configurable-app:v2
+docker run -d --name prod-app -p 5003:5000 -e APP_ENV=production configurable-app:v2
+docker ps
+docker logs prod-app
+BROWSER:
+http://localhost:5001 -> development
+http://localhost:5002 -> staging
+http://localhost:5003 -> production
+Expected production response: Version: 2.0 | Environment: production | Port: 5000
+SECTION B: DOCKER COMPOSE HORIZONTAL SCALING + NGINX LOAD BALANCING
+QUESTION:Traffic increases. Run 3 replicas of the Python backend, route requests
+through one public Nginx port, and show that requests reach multiple replicas.FILES: app.py, requirements.txt, Dockerfile, compose.yaml, nginx.conf
+The app.py and Dockerfile below are complete (make a new folder).
+--- app.py ---
+from flask import Flask
+import socket
+app = Flask(__name__)
+@app.route('/')
+def home():
+    return 'Served by replica: ' + socket.gethostname()
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
+--- requirements.txt ---
+flask
+--- Dockerfile ---
+FROM python:3.11-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY app.py .
+EXPOSE 5000
+CMD ["python", "app.py"]
+--- compose.yaml ---
+services:
+  web:
+    build: .
+    expose:
+      - "5000"
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - web
+--- nginx.conf ---
+events {}
+http {
+    resolver 127.0.0.11 valid=5s ipv6=off;
+    server {
+        listen 80;
+        location / {
+            set $backend http://web:5000;
+            proxy_pass $backend;
+        }
+    }
+}
+--- commands ---
+docker compose config
+docker compose up -d --build --scale web=3
+docker compose ps
+docker compose logs nginx
+docker compose ps --services
+
+TEST IN POWERSHELL:
+1..10 | ForEach-Object { (Invoke-WebRequest http://localhost:8080 -UseBasicParsing).Content }
+SECTION C: DOCKER COMPOSE PYTHON + POSTGRES DATABASE
+QUESTION:
+Deploy a Python app and PostgreSQL as two services with networking,health
+check and persistent volume. For frontend/backend/db questions add a frontend.FILES: app.py, requirements.txt, Dockerfile, compose.yaml
+--- app.py ---
+from flask import Flask, jsonify
+import os
+import psycopg2
+app = Flask(__name__)
+@app.route('/')
+def home():
+    with psycopg2.connect(host=os.getenv('DB_HOST', 'db'),
+                          dbname=os.getenv('DB_NAME', 'studentdb'),
+                          user=os.getenv('DB_USER', 'postgres'),
+                          password=os.environ['DB_PASSWORD']) as conn:
+        with conn.cursor() as cur:
+            cur.execute('SELECT 1')
+            value = cur.fetchone()[0]
+    return jsonify(message='Database connected', test=value)
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
+--- requirements.txt ---
+flask
+psycopg2-binary
+--- Dockerfile ---
+FROM python:3.11-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY app.py .
+EXPOSE 5000
+CMD ["python", "app.py"]
+--- compose.yaml ---
+services:
+  web:
+    build: .
+    ports:
+      - "8080:5000"
+    environment:
+      DB_HOST: db
+      DB_NAME: studentdb
+      DB_USER: postgres
+      DB_PASSWORD: lab123
+    depends_on:
+      db:
+        condition: service_healthy
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: studentdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: lab123
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d studentdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+volumes:
+  pgdata:
+--- commands ---
+docker compose up -d --build
+docker compose ps
+docker compose logs web
+SECTION D: REUSABLE KUBERNETES DEPLOYMENT + SERVICE + HPA
+QUESTION:Deploy web with N replicas, NodePort service, CPU requests/limits, and HPA.
+--- deployment.yaml ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-deployment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      containers:
+        - name: web
+          image: nginx:alpine
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 128Mi
+--- service.yaml ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-service
+spec:
+  type: NodePort
+  selector:
+    app: web
+  ports:
+    - port: 80
+      targetPort: 80
+      nodePort: 30080
+--- hpa.yaml ---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: web-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: web-deployment
+  minReplicas: 2
+  maxReplicas: 6
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 50
+--- commands ---
+kubectl config current-context
+kubectl get nodes
+kubectl apply -f deployment.yaml
+kubectl apply -f service.yaml
+kubectl apply -f hpa.yaml
+kubectl get pods
+kubectl get deployments
+kubectl get svc
+kubectl get hpa
+kubectl describe hpa web-hpa
+kubectl top pods
+kubectl port-forward service/web-service 8080:80
+# Open http://localhost:8080
+SECTION E: FULL MODEL SCENARIO - FRONTEND + TWO APIs + SHARED DATABASE
+QUESTION:
+Build frontend, API1, API2; both APIs use one database. Kubernetes deploy
+frontend/API1/API2 each 2 replicas, Services, CPU requests and limits; HPA for API services min 2 max 6 target 50%. Verify access and scaling.
+FOLDER STRUCTURE:
+project/
+  frontend/app.py
+  frontend/requirements.txt
+  frontend/Dockerfile
+  api1/app.py
+  api1/requirements.txt
+  api1/Dockerfile
+  api2/app.py
+  api2/requirements.txt
+  api2/Dockerfile
+  database.yaml
+  apps.yaml
+  hpa.yaml
+--- frontend/app.py ---
+from flask import Flask
+import requests
+app = Flask(__name__)
+@app.route('/')
+def home():
+    a = requests.get('http://api1-service:5000/', timeout=5).json()
+    b = requests.get('http://api2-service:5000/', timeout=5).json()
+    return '<h2>Frontend</h2><p>' + str(a) + '</p><p>' + str(b) + '</p>'
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
+--- frontend/requirements.txt ---
+flask
+requests
+--- api1/app.py ---
+from flask import Flask, jsonify
+import os
+import psycopg2
+app = Flask(__name__)
+@app.route('/')
+def home():
+    with psycopg2.connect(host='postgres', dbname='appdb', user='postgres',
+                          password=os.environ['DB_PASSWORD']) as conn:
+        with conn.cursor() as cur:
+            cur.execute('SELECT COUNT(*) FROM records')
+            n = cur.fetchone()[0]
+    return jsonify(api='api1', records=n)
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
+--- api2/app.py ---
+from flask import Flask, jsonify
+import os
+import psycopg2
+app = Flask(__name__)
+@app.route('/')
+def home():
+    with psycopg2.connect(host='postgres', dbname='appdb', user='postgres',
+                          password=os.environ['DB_PASSWORD']) as conn:
+        with conn.cursor() as cur:
+            cur.execute('SELECT COUNT(*) FROM records')
+            n = cur.fetchone()[0]
+    return jsonify(api='api2', records=n)
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
+--- api1/requirements.txt AND api2/requirements.txt ---
+flask
+psycopg2-binary
+--- Dockerfile (SAME file in each of three folders) ---
+FROM python:3.11-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY app.py .
+EXPOSE 5000
+CMD ["python", "app.py"]
+--- database.yaml (PostgreSQL, schema initialization and persistent volume) ---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: database-secret
+type: Opaque
+stringData:
+  password: exam123
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: init-sql
+data:
+  init.sql: |
+    CREATE TABLE IF NOT EXISTS records (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL
+    );
+    INSERT INTO records(name) VALUES ('Sample record');
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: db-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: appdb
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: database-secret
+                  key: password
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "pg_isready -U postgres -d appdb"]
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          volumeMounts:
+            - name: storage
+              mountPath: /var/lib/postgresql/data
+              subPath: pgdata
+            - name: init
+              mountPath: /docker-entrypoint-initdb.d
+      volumes:
+        - name: storage
+          persistentVolumeClaim:
+            claimName: db-pvc
+        - name: init
+          configMap:
+            name: init-sql
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+spec:
+  type: ClusterIP
+  selector:
+    app: postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
+
+--- apps.yaml (3 Deployments + 3 Services) ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: api1
+  template:
+    metadata:
+      labels:
+        app: api1
+    spec:
+      containers:
+        - name: api1
+          image: api1:v1
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5000
+          env:
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: database-secret
+                  key: password
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api1-service
+spec:
+  type: ClusterIP
+  selector:
+    app: api1
+  ports:
+    - port: 5000
+      targetPort: 5000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api2
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: api2
+  template:
+    metadata:
+      labels:
+        app: api2
+    spec:
+      containers:
+        - name: api2
+          image: api2:v1
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5000
+          env:
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: database-secret
+                  key: password
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api2-service
+spec:
+  type: ClusterIP
+  selector:
+    app: api2
+  ports:
+    - port: 5000
+      targetPort: 5000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+        - name: frontend
+          image: frontend:v1
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5000
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-service
+spec:
+  type: NodePort
+  selector:
+    app: frontend
+  ports:
+    - port: 5000
+      targetPort: 5000
+      nodePort: 30080
+--- hpa.yaml (2 API HPAs) ---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: api1-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: api1
+  minReplicas: 2
+  maxReplicas: 6
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 50
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: api2-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: api2
+  minReplicas: 2
+  maxReplicas: 6
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 50
+--- BUILD and DEPLOY (PowerShell in project folder) ---
+docker build -t api1:v1 ./api1
+docker build -t api2:v1 ./api2
+docker build -t frontend:v1 ./frontend
+# Docker Desktop's Kubernetes must be enabled; use accessible images.
+kubectl get nodes
+kubectl apply -f database.yaml
+kubectl rollout status deployment/postgres --timeout=180s
+kubectl apply -f apps.yaml
+kubectl apply -f hpa.yaml
+kubectl get pods
+kubectl get deployments
+kubectl get svc
+kubectl get hpa
+kubectl port-forward service/frontend-service 8080:5000
+# Open browser: http://localhost:8080
+
+SECTION F: MODEL PRACTICAL HOSPITAL XML + XQUERY GROUP BY
+QUESTION:
+--- hospital.xml ---
+<?xml version="1.0" encoding="UTF-8"?>
+<hospitals>
+  <hospital hospitalID="H01">
+    <name>City Care Hospital</name>
+    <type>Multispecialty</type>
+    <phone>9876543210</phone>
+    <address><street>Main Road</street><pincode>600001</pincode></address>
+    <website>https://example.org</website>
+    <emergencyService>true</emergencyService>
+    <departments>
+      <department deptID="D01">
+        <name>General Medicine</name>
+        <doctorIncharge docID="DOC01"/>
+        <location><floor>1</floor><extension>101</extension></location>
+      </department>
+      <department deptID="D02">
+        <name>Orthopaedics</name>
+        <doctorIncharge docID="DOC02"/>
+        <location><floor>2</floor><extension>102</extension></location>
+      </department>
+      <department deptID="D03">
+        <name>Paediatrics</name>
+        <doctorIncharge docID="DOC03"/>
+        <location><floor>3</floor><extension>103</extension></location>
+      </department>
+    </departments>
+    <doctors>
+      <doctor docID="DOC01">
+        <name><fname>Arun</fname><lname>Kumar</lname></name>
+        <specialty>General Medicine</specialty>
+      </doctor>
+      <doctor docID="DOC02">
+        <name><fname>Ravi</fname><lname>Shankar</lname></name>
+        <specialty>Orthopaedics</specialty>
+      </doctor>
+      <doctor docID="DOC03">
+        <name><fname>Priya</fname><lname>Devi</lname></name>
+        <specialty>Paediatrics</specialty>
+      </doctor>
+    </doctors>
+  </hospital>
+  <hospital hospitalID="H02">
+    <name>General Health Hospital</name>
+    <type>General</type>
+    <phone>9876500000</phone>
+    <address><street>Lake Street</street><pincode>600002</pincode></address>
+    <website>https://example.com</website>
+    <emergencyService>false</emergencyService>
+    <departments/>
+    <doctors/>
+  </hospital>
+</hospitals>
+--- query.xq (run in BaseX; group by in FLWOR) ---
+for $h in doc('hospital.xml')/hospitals/hospital
+let $type := string($h/type)
+group by $type
+where $type = 'Multispecialty'
+return
+  <group type="{$type}">
+    {
+      for $one in $h
+      return <hospital id="{data($one/@hospitalID)}">{$one/name}{$one/phone}</hospital>
+    }
+  </group>
+EXTRA HOSPITAL QUERIES YOU CAN ADAPT:
+1. ALL hospital names:
+for $h in doc('hospital.xml')//hospital return $h/name
+2. MULTISPECIALTY only (without grouping):
+for $h in doc('hospital.xml')//hospital
+where $h/type = 'Multispecialty'
+return $h/name
+3. GROUP ALL hospitals by type:
+for $h in doc('hospital.xml')//hospital
+let $t := string($h/type)
+group by $t
+return <group type="{$t}" count="{count($h)}">{$h/name}</group>
+4. Hospitals with emergency service:
+for $h in doc('hospital.xml')//hospital
+where $h/emergencyService = 'true'
+return $h/name
+5. Doctors with a given specialty:
+for $d in doc('hospital.xml')//doctor
+where $d/specialty = 'Orthopaedics'
+return $d/name
+6. Department names and floors:
+for $d in doc('hospital.xml')//department
+return <department>{$d/name}{$d/location/floor}</department>
+7. Sort hospitals by name:
+for $h in doc('hospital.xml')//hospital
+order by string($h/name)
+return $h/name
+8. Total hospitals:
+count(doc('hospital.xml')//hospital)
+9. Count doctors in each hospital:
+for $h in doc('hospital.xml')//hospital
+return <count hospital="{string($h/name)}">{count($h/doctors/doctor)}</count>
+10. GROUP by type with WHERE before grouping: easiest group-by question style:
+for $h in doc('hospital.xml')//hospital
+where $h/type = 'Multispecialty'
+let $type := string($h/type)
+group by $type
+return <group type="{$type}">{$h/name}</group>
+
+SECTION G: UNIVERSAL XQUERY EXAM TEMPLATE
+HOW TO CONVERT ANY XML QUESTION TO XQUERY:
+Replace document name, root, repeating element, field, and comparison.
+
+UNIVERSAL SAMPLE XML:
+<college>
+  <student id="101"><name>Anu</name><department>CSE</department><marks>85</marks></student>
+  <student id="102"><name>Ravi</name><department>ECE</department><marks>70</marks></student>
+  <student id="103"><name>Meena</name><department>CSE</department><marks>95</marks></student>
+</college>
+1. BASIC FILTER (where):
+for $s in doc('college.xml')/college/student
+where $s/department = 'CSE'
+return $s/name
+2. NUMERIC FILTER (cast for comparison or sorting):
+for $s in doc('college.xml')/college/student
+where xs:integer($s/marks) > 80
+return $s/name
+3. SORT DESCENDING:
+for $s in doc('college.xml')/college/student
+order by xs:integer($s/marks) descending
+return $s/name
+4. GROUP BY DEPARTMENT:
+for $s in doc('college.xml')/college/student
+let $dept := string($s/department)
+group by $dept
+return <group department="{$dept}" count="{count($s)}">{$s/name}</group>
+5. AGGREGATE PER GROUP (AVERAGE):
+for $s in doc('college.xml')/college/student
+let $dept := string($s/department)
+group by $dept
+return <group department="{$dept}" average="{avg($s/marks)}"/>
+6. USER DEFINED FUNCTION:
+declare function local:grade($m as xs:integer) as xs:string {
+  if ($m >= 80) then 'A' else 'B'
+};
+for $s in doc('college.xml')/college/student
+return <result><name>{data($s/name)}</name><grade>{local:grade(xs:integer($s/marks))}</grade></result>
+DOCKER:
+1. Open Docker Desktop and wait for Engine running.
+2. VS Code -> create separate scenario folder.
+3. Create app.py, requirements.txt, Dockerfile and/or compose.yaml.
+4. Open terminal inside THAT folder (cd folder path).
+5. Run docker build -t IMAGE:TAG .  OR docker compose up -d --build.
+6. Check docker ps / docker compose ps.
+7. Open localhost:HOST_PORT and capture expected output.
+8. If failing: docker logs CONTAINER / docker compose logs SERVICE.
+KUBERNETES:
+1. Docker Desktop Settings -> Kubernetes enabled; cluster Ready.
+2. Check kubectl config current-context and kubectl get nodes.
+3. Save exactly deployment.yaml, service.yaml, hpa.yaml as plain files.
+4. kubectl apply -f deployment.yaml
+5. kubectl apply -f service.yaml
+6. kubectl apply -f hpa.yaml
+7. kubectl get pods, deployments, services, hpa.
+8. kubectl port-forward service/web-service 8080:80 (if needed).
+9. kubectl describe deployment web-deployment for debugging.
+
+
+
+
