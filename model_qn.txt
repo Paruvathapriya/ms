@@ -1,0 +1,396 @@
+QN1:
+1. Docker and Containers
+
+A. Scenario: Create a simple web server using Docker
+
+Question: Create a Dockerfile that builds a basic web server using Nginx. The website should contain HTML, CSS, and JavaScript files. Use a base image, copy the files into the container, and expose the required port.
+
+Step 1: Create the project structure
+
+
+webapp/
+├── Dockerfile
+├── index.html
+├── style.css
+└── script.js
+
+Step 2: Create the HTML file
+
+index.html
+
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Website</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>Welcome to My Website</h1>
+    <button onclick="showMessage()">Click Me</button>
+    <script src="script.js"></script>
+</body>
+</html>
+
+
+style.css
+
+
+body {
+    text-align: center;
+    background-color: lightblue;
+}
+
+
+script.js
+
+
+function showMessage() {
+    alert("Welcome!");
+}
+
+Step 3: Write the Dockerfile
+
+Dockerfile
+
+FROM nginx:latest
+
+WORKDIR /usr/share/nginx/html
+
+COPY index.html .
+COPY style.css .
+COPY script.js .
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]
+
+Step 4: Build and run the container
+
+
+docker build -t myweb .
+docker run -d -p 8080:80 --name web myweb
+
+
+Open `http://localhost:8080` in your browser.
+
+Explanation of Dockerfile instructions
+
+| Instruction | Purpose                        |
+| ----------- | ------------------------------ |
+| `FROM`      | Selects the base image.        |
+| `WORKDIR`   | Sets the working directory.    |
+| `COPY`      | Copies files into the image.   |
+| `EXPOSE`    | Documents the container port.  |
+| `CMD`       | Specifies the default command. |
+
+## B. Scenario: Scale a service using Docker Compose
+
+Question: Multiple instances of a service must run to handle increased traffic. Use Docker Compose to deploy and scale the service.
+
+Create a `compose.yaml` file:
+
+```
+services:
+  web:
+    image: nginx:latest
+    ports:
+      - "8080:80"
+    deploy:
+      replicas: 3
+```
+
+Commands:
+
+```
+docker compose up -d
+docker compose ps
+docker compose down
+```
+
+Important: The `deploy.replicas` setting is primarily intended for Docker Swarm deployments. For actual Swarm scaling, use:
+
+```
+docker swarm init
+docker stack deploy -c compose.yaml myapp
+docker service scale myapp_web=3
+docker service ls
+```
+
+This creates three service replicas in Swarm mode.
+
+# 2. Kubernetes
+
+Question: Create a Kubernetes Deployment with three replicas. Both containers must share a volume mounted at `/data`. Expose the application using a ClusterIP Service named `app-service` on port 80. Then scale the Deployment to five replicas.
+
+## Step 1: Create the Deployment YAML
+
+Save as `deployment.yaml`.
+
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: myapp
+  template:
+    metadata:
+      labels:
+        app: myapp
+    spec:
+      containers:
+        - name: frontend
+          image: nginx:latest
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: shared-volume
+              mountPath: /data
+
+        - name: sidecar
+          image: busybox:latest
+          command: ["sh", "-c", "sleep 3600"]
+          volumeMounts:
+            - name: shared-volume
+              mountPath: /data
+
+      volumes:
+        - name: shared-volume
+          emptyDir: {}
+```
+
+Explanation:
+
+- `replicas: 3` creates three Pods.
+- `frontend` runs Nginx on port 80.
+- `sidecar` runs a second container in each Pod.
+- `emptyDir` creates a shared volume for both containers inside each Pod.
+- `volumeMounts` mounts the shared volume at `/data`.
+
+## Step 2: Create the ClusterIP Service
+
+Save as `service.yaml`.
+
+```
+apiVersion: v1
+kind: Service
+metadata:
+  name: app-service
+spec:
+  type: ClusterIP
+  selector:
+    app: myapp
+  ports:
+    - port: 80
+      targetPort: 80
+```
+
+The Service forwards traffic received on port 80 to port 80 of the selected frontend containers.
+
+## Step 3: Apply the YAML files
+
+```
+kubectl apply -f deployment.yaml
+kubectl apply -f service.yaml
+```
+
+## Step 4: Scale the Deployment to five replicas
+
+```
+kubectl scale deployment app-deployment --replicas=5
+```
+
+## Step 5: Verify the deployment
+
+```
+kubectl get deployments
+kubectl get pods
+kubectl get services
+kubectl describe service app-service
+kubectl rollout status deployment/app-deployment
+```
+
+To test the Service from inside the cluster:
+
+kubectl run test --image=busybox:latest \
+  --restart=Never --rm -it \
+  -- wget -qO- http://app-service
+
+
+Expected result: Five Pods should be running, the Service should be named `app-service`, and requests to the Service should reach Nginx.
+
+Note: `ClusterIP` exposes the Service only inside the cluster. To access it from your computer, you can use `kubectl port-forward service/app-service 8080:80`.
+
+# 3. XML and XQuery
+
+## A. Create the XML file `hospital.xml`
+
+Question: Create a well-formed XML file for a hotel management system with `hotels` as the root element. It must contain hotel details, departments, and rooms.
+
+```
+<?xml version="1.0" encoding="UTF-8"?>
+
+<hotels>
+    <hotel hotelID="H101">
+        <name>Sunshine Hotel</name>
+        <starValue>5</starValue>
+        <phone>9876543210</phone>
+
+        <address>
+            <street>Anna Salai</street>
+            <pincode>600002</pincode>
+        </address>
+
+        <website>www.sunshine.com</website>
+
+        <departments>
+            <department deptID="D101">
+                <name>Reception</name>
+                <location>
+                    <floor>1</floor>
+                    <extension>101</extension>
+                </location>
+            </department>
+
+            <department deptID="D102">
+                <name>Housekeeping</name>
+                <location>
+                    <floor>2</floor>
+                    <extension>202</extension>
+                </location>
+            </department>
+        </departments>
+
+        <rooms>
+            <room roomID="R101" type="Deluxe">
+                <Roomtype>Deluxe</Roomtype>
+                <rate>5000</rate>
+                <amenities>
+                    <amenity>
+                        <name>Wi-Fi</name>
+                    </amenity>
+                    <amenity>
+                        <name>Breakfast</name>
+                    </amenity>
+                    <amenity>
+                        <name>LivingArea</name>
+                    </amenity>
+                </amenities>
+            </room>
+
+            <room roomID="R102" type="Suite">
+                <Roomtype>Suite</Roomtype>
+                <rate>8000</rate>
+                <amenities>
+                    <amenity>
+                        <name>Wi-Fi</name>
+                    </amenity>
+                    <amenity>
+                        <name>Breakfast</name>
+                    </amenity>
+                    <amenity>
+                        <name>LivingArea</name>
+                    </amenity>
+                </amenities>
+            </room>
+        </rooms>
+    </hotel>
+
+    <hotel hotelID="H102">
+        <name>Green Valley Hotel</name>
+        <starValue>3</starValue>
+        <phone>9876543211</phone>
+
+        <address>
+            <street>OMR Road</street>
+            <pincode>603103</pincode>
+        </address>
+
+        <website>www.greenvalley.com</website>
+
+        <departments>
+            <department deptID="D201">
+                <name>FrontOffice</name>
+                <location>
+                    <floor>1</floor>
+                    <extension>201</extension>
+                </location>
+            </department>
+        </departments>
+
+        <rooms>
+            <room roomID="R201" type="Standard">
+                <Roomtype>Standard</Roomtype>
+                <rate>2500</rate>
+                <amenities>
+                    <amenity>
+                        <name>Wi-Fi</name>
+                    </amenity>
+                    <amenity>
+                        <name>Breakfast</name>
+                    </amenity>
+                    <amenity>
+                        <name>LivingArea</name>
+                    </amenity>
+                </amenities>
+            </room>
+        </rooms>
+    </hotel>
+</hotels>
+```
+
+Important points:
+
+- `hotels` is the root element.
+- `hotelID`, `deptID`, and `roomID` are attributes.
+- Each hotel has its name, star rating, phone, address, and website.
+- Departments contain their names and locations.
+- Rooms contain their type, rate, and amenities.
+
+## B. XQuery using the `group by` clause
+
+Question: Write an XQuery expression using the `group by` clause to group all hotels by their `starValue`.
+
+```
+for $h in doc("hospital.xml")/hotels/hotel
+group by $star := $h/starValue
+return
+    <group starValue="{$star}">
+        {
+            for $hotel in $h
+            return $hotel/name
+        }
+    </group>
+```
+
+Explanation:
+
+- `doc("hospital.xml")` loads the XML document.
+- `for` iterates through all hotels.
+- `group by` groups hotels having the same star rating.
+- `return` displays each rating and the names of hotels in that group.
+
+## C. FLWOR expression to extract all five-star hotels
+
+Question: Write a FLWOR expression to extract all hotels whose star rating is 5.
+
+```
+for $h in doc("hospital.xml")/hotels/hotel
+where $h/starValue = 5
+return $h
+```
+
+Explanation of FLWOR:
+
+| Clause     | Meaning                              |
+| ---------- | ------------------------------------ |
+| `for`      | Iterates through hotels.             |
+| `let`      | Assigns a value to a variable.       |
+| `where`    | Filters hotels based on a condition. |
+| `order by` | Sorts the results.                   |
+| `return`   | Produces the output.                 |
+
