@@ -1,0 +1,347 @@
+# Answers for All Questions
+
+The question paper contains three sections: Docker & Containers, Kubernetes, and XML/XQuery. Below are the answers with complete code, filenames, folder structures, commands, and explanations.
+
+# 1. Docker & Containers
+
+## A. Scenario: Create a Dockerfile for a static website using Nginx
+
+Aim: Create a Docker image for a static website containing HTML, CSS, and JavaScript using Nginx.
+
+### Step 1: Create the project folder
+
+```
+webapp/
+├── Dockerfile
+├── index.html
+├── style.css
+└── script.js
+```
+
+### Step 2: `index.html`
+
+```
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Website</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>Welcome to My Website</h1>
+    <button onclick="showMessage()">Click Me</button>
+    <script src="script.js"></script>
+</body>
+</html>
+```
+
+### Step 3: `style.css`
+
+```
+body {
+    text-align: center;
+    background-color: lightblue;
+}
+```
+
+### Step 4: `script.js`
+
+```
+function showMessage() {
+    alert("Welcome!");
+}
+```
+
+### Step 5: `Dockerfile`
+
+```
+FROM nginx:latest
+
+WORKDIR /usr/share/nginx/html
+
+COPY index.html .
+COPY style.css .
+COPY script.js .
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]
+```
+
+### Step 6: Build and run the Docker container
+
+Run these commands inside the `webapp` folder.
+
+```
+docker build -t myweb .
+docker run -d -p 8080:80 --name web myweb
+docker ps
+```
+
+Open `http://localhost:8080` in your browser.
+
+Explanation:
+
+- `FROM` selects the Nginx base image.
+- `COPY` copies the website files into the container.
+- `EXPOSE 80` documents the web server port.
+- `CMD` starts Nginx in the foreground.
+- `-p 8080:80` maps host port 8080 to container port 80.
+
+## B. Scenario: Scale a service to handle high traffic using Docker Compose
+
+Aim: Run multiple instances of a web service to handle more concurrent requests.
+
+Create a folder with a file named `compose.yaml`.
+
+```
+services:
+  web:
+    image: nginx:latest
+    deploy:
+      replicas: 3
+```
+
+### Commands
+
+For actual replica scaling, use Docker Swarm:
+
+```
+docker swarm init
+docker stack deploy -c compose.yaml myapp
+docker service scale myapp_web=3
+docker service ls
+docker service ps myapp_web
+```
+
+Explanation:
+
+- `image` specifies the Nginx image.
+- `replicas: 3` requests three instances.
+- `docker stack deploy` deploys the Compose file as a Swarm stack.
+- `docker service scale` changes the number of replicas.
+- `docker service ls` verifies the running service.
+
+Note: The `deploy` section's replica setting is reliably applied for this scaling scenario when deploying as a Docker Swarm stack.
+
+# 2. Kubernetes
+
+Aim: Create a Deployment named `app-suite` containing two containers, share a volume mounted at `/data`, create three replicas, and expose the frontend through a ClusterIP Service named `app-suite-svc`.
+
+## Step 1: Create the folder
+
+```
+k8s-app/
+├── deployment.yaml
+└── service.yaml
+```
+
+## Step 2: Create `deployment.yaml`
+
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-suite
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: app-suite
+  template:
+    metadata:
+      labels:
+        app: app-suite
+    spec:
+      containers:
+        - name: frontend
+          image: nginx:latest
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: shared-data
+              mountPath: /data
+
+        - name: backend
+          image: python:3.10
+          command: ["python", "-m", "http.server", "5000", "--directory", "/data"]
+          ports:
+            - containerPort: 5000
+          volumeMounts:
+            - name: shared-data
+              mountPath: /data
+
+      volumes:
+        - name: shared-data
+          emptyDir: {}
+```
+
+## Step 3: Create `service.yaml`
+
+```
+apiVersion: v1
+kind: Service
+metadata:
+  name: app-suite-svc
+spec:
+  type: ClusterIP
+  selector:
+    app: app-suite
+  ports:
+    - port: 80
+      targetPort: 80
+```
+
+## Step 4: Deploy the application
+
+Run these commands inside the `k8s-app` folder:
+
+```
+kubectl apply -f deployment.yaml
+kubectl apply -f service.yaml
+```
+
+## Step 5: Verify and scale
+
+```
+kubectl get deployments
+kubectl get pods
+kubectl get services
+kubectl describe deployment app-suite
+kubectl describe service app-suite-svc
+```
+
+Scale to five replicas if required:
+
+```
+kubectl scale deployment app-suite --replicas=5
+kubectl get pods
+```
+
+## Explanation
+
+- `replicas: 3` creates three Pods.
+- The frontend uses `nginx:latest` on port 80.
+- The backend uses `python:3.10` to run an HTTP server on port 5000.
+- `emptyDir` creates a shared volume inside each Pod.
+- Both containers mount the volume at `/data`.
+- `ClusterIP` exposes the Service internally.
+- `selector` connects the Service to the frontend/backend Pods.
+
+Important: Each Pod has its own shared volume. The volume is shared between the two containers within that Pod, not across all three Pods.
+
+# 3. XML and XQuery
+
+## A. Create a well-formed XML file named `library.xml`
+
+Aim: Create a library management system with `library` as the root element and `book` as a child element.
+
+### `library.xml`
+
+```
+<?xml version="1.0" encoding="UTF-8"?>
+
+<library>
+    <book id="B101">
+        <title>Python Programming</title>
+        <author>John Smith</author>
+        <publisher>ABC Publications</publisher>
+        <category>Technology</category>
+        <price currency="INR">500</price>
+        <year>2022</year>
+    </book>
+
+    <book id="B102">
+        <title>Database Design</title>
+        <author>David Lee</author>
+        <publisher>XYZ Publications</publisher>
+        <category>Design</category>
+        <price currency="USD">40</price>
+        <year>2023</year>
+    </book>
+
+    <book id="B103">
+        <title>Business Management</title>
+        <author>Mary John</author>
+        <publisher>PQR Publications</publisher>
+        <category>Business</category>
+        <price currency="GBP">25</price>
+        <year>2019</year>
+    </book>
+
+    <book id="B104">
+        <title>Computer Networks</title>
+        <author>Robert Brown</author>
+        <publisher>ABC Publications</publisher>
+        <category>Technology</category>
+        <price currency="YEN">3000</price>
+        <year>2024</year>
+    </book>
+</library>
+```
+
+### Explanation
+
+- `library` is the root element.
+- `book` is a child element.
+- `id` is an attribute of `book`.
+- `title`, `author`, `publisher`, `category`, `price`, and `year` are child elements.
+- `category` contains values such as Design, Technology, and Business.
+- `currency` is an attribute of `price`, with values INR, USD, GBP, and YEN.
+
+## B. XQuery FLWOR expression
+
+Question: Extract all books published after 2020. Return a newly constructed `book` element for each match containing the book title and an `id` attribute holding the original ID. Order the results alphabetically by title.
+
+### XQuery code
+
+```
+for $b in doc("library.xml")/library/book
+where xs:integer($b/year) > 2020
+order by $b/title
+return
+    <book id="{data($b/@id)}">
+        {data($b/title)}
+    </book>
+```
+
+### Explanation
+
+| Clause           | Purpose                              |
+| ---------------- | ------------------------------------ |
+| `for`            | Iterates through all books.          |
+| `where`          | Selects books published after 2020.  |
+| `order by`       | Sorts books alphabetically by title. |
+| `return`         | Constructs a new `book` element.     |
+| `data($b/@id)`   | Retrieves the original book ID.      |
+| `data($b/title)` | Retrieves the book title as text.    |
+
+### Expected output
+
+```
+<book id="B102">Database Design</book>
+<book id="B101">Python Programming</book>
+<book id="B104">Computer Networks</book>
+```
+
+Correction: Alphabetically, `Computer Networks` comes before `Database Design`. Therefore, the correct ordered output is:
+
+```
+<book id="B104">Computer Networks</book>
+<book id="B102">Database Design</book>
+<book id="B101">Python Programming</book>
+```
+
+`Business Management` is excluded because its publication year is 2019.
+
+## Quick revision for your practical exam
+
+| Section    | Main concept                                                 |
+| ---------- | ------------------------------------------------------------ |
+| Docker A   | Dockerfile, Nginx, HTML/CSS/JavaScript                       |
+| Docker B   | Docker Compose, replicas, Docker Swarm                       |
+| Kubernetes | Deployment, two containers, shared volume, ClusterIP Service |
+| XML        | Root element, child elements, attributes                     |
+| XQuery     | FLWOR, filtering, sorting, constructing XML                  |
+
+Remember: Save each file using the exact filename specified and run the commands from the corresponding project folder.
