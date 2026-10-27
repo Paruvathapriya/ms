@@ -1,0 +1,715 @@
+================================================================================
+          MINIMAL & PRIMITIVE DEVOPS, KUBERNETES & XML LAB SOLUTIONS
+================================================================================
+
+--------------------------------------------------------------------------------
+TABLE OF CONTENTS
+--------------------------------------------------------------------------------
+1. QUESTION PAPER SET 1 (Nginx Static, Multi-container App-Suite, Hotel XML)
+2. QUESTION PAPER SET 2 (Docker Hub Push, Custom Build Context, Rolling Updates, Real Estate XML)
+3. QUESTION PAPER SET 3 (Microservices Network Isolation, Health Probes & HPA, Hospital XML)
+4. QUESTION PAPER SET 4 (Node.js Build Args, Scaled Microservices & HPA, Hospital Management XML)
+5. BONUS: MINIMAL FLASK DOCKER & DOCKER COMPOSE VERSIONS
+
+================================================================================
+1. QUESTION PAPER SET 1
+================================================================================
+
+--------------------------------------------------------------------------------
+1.1 DOCKERS & CONTAINERS - SCENARIO A
+--------------------------------------------------------------------------------
+[QUESTION]
+Create a simple Dockerfile that builds a basic web server using Nginx to serve static HTML content.
+
+[FILE: index.html]
+```html
+<h1>Hello World</h1>
+```
+
+[FILE: Dockerfile]
+```dockerfile
+FROM nginx:alpine
+COPY index.html /usr/share/nginx/html/index.html
+```
+
+[RUN COMMANDS]
+docker build -t static-nginx .
+docker run -d -p 8080:80 static-nginx
+
+
+--------------------------------------------------------------------------------
+1.2 DOCKERS & CONTAINERS - SCENARIO B
+--------------------------------------------------------------------------------
+[QUESTION]
+Scale services horizontally to handle increased load and implement load balancing.
+
+[FILE: docker-compose.yml]
+```yaml
+version: '3'
+
+services:
+  web:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
+
+  app:
+    image: containous/whoami
+```
+
+[RUN COMMANDS]
+docker-compose up -d --scale app=3
+
+
+--------------------------------------------------------------------------------
+1.3 KUBERNETES - SCENARIO
+--------------------------------------------------------------------------------
+[QUESTION]
+Create a Deployment named app-suite containing two containers (frontend: nginx, backend: python HTTP server) 
+running 3 replicas, sharing a volume at /data, and exposed via ClusterIP service app-suite-svc on port 80.
+
+[FILE: app-suite.yaml]
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-suite
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: app-suite
+  template:
+    metadata:
+      labels:
+        app: app-suite
+    spec:
+      volumes:
+        - name: shared-data
+          emptyDir: {}
+      containers:
+        - name: frontend
+          image: nginx:alpine
+          volumeMounts:
+            - name: shared-data
+              mountPath: /data
+        - name: backend
+          image: python:3.10-alpine
+          command: ["python", "-m", "http.server", "5000"]
+          volumeMounts:
+            - name: shared-data
+              mountPath: /data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: app-suite-svc
+spec:
+  type: ClusterIP
+  selector:
+    app: app-suite
+  ports:
+    - port: 80
+      targetPort: 80
+```
+
+[RUN COMMANDS]
+kubectl apply -f app-suite.yaml
+kubectl get pods
+kubectl exec -it deployment/app-suite -c frontend -- ls /data
+kubectl exec -it deployment/app-suite -c backend -- ls /data
+
+
+--------------------------------------------------------------------------------
+1.4 XML & XQUERY - SCENARIO
+--------------------------------------------------------------------------------
+[QUESTION]
+Create hotel.xml and XQuery FLWOR and group-by expressions.
+
+[FILE: hotel.xml]
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<hotels>
+    <hotel hotelID="H1">
+        <name>Grand Hotel</name>
+        <starValue>5</starValue>
+        <phone>123456</phone>
+        <address><street>Main St</street><pincode>10001</pincode></address>
+        <website>grand.com</website>
+        <departments deptID="D1">
+            <department>
+                <name>FrontOffice</name>
+                <location><floor>1</floor><extension>101</extension></location>
+            </department>
+        </departments>
+        <rooms>
+            <room roomID="R1" type="Deluxe">
+                <Roomtype>Deluxe</Roomtype>
+                <rate>100</rate>
+                <amenities><amenity><name>Wi-Fi</name></amenity></amenities>
+            </room>
+        </rooms>
+    </hotel>
+    <hotel hotelID="H2">
+        <name>Star Inn</name>
+        <starValue>3</starValue>
+        <phone>654321</phone>
+        <address><street>Park St</street><pincode>10002</pincode></address>
+        <website>star.com</website>
+        <departments deptID="D2">
+            <department>
+                <name>Housekeeping</name>
+                <location><floor>0</floor><extension>102</extension></location>
+            </department>
+        </departments>
+        <rooms>
+            <room roomID="R2" type="Standard">
+                <Roomtype>Standard</Roomtype>
+                <rate>50</rate>
+                <amenities><amenity><name>Breakfast</name></amenity></amenities>
+            </room>
+        </rooms>
+    </hotel>
+</hotels>
+```
+
+[FILE: queries.xq]
+```xquery
+(: Group by starValue :)
+for $h in doc("hotel.xml")/hotels/hotel
+group by $star := $h/starValue
+return <group star="{$star}">{$h/name}</group>
+
+(: FLWOR 5-Star Filter :)
+for $h in doc("hotel.xml")/hotels/hotel
+where $h/starValue = 5
+return $h
+```
+
+
+================================================================================
+2. QUESTION PAPER SET 2
+================================================================================
+
+--------------------------------------------------------------------------------
+2.1 DOCKERS & CONTAINERS - SCENARIO A
+--------------------------------------------------------------------------------
+[QUESTION]
+Create a custom image, tag it, and push to Docker Hub.
+
+[RUN COMMANDS]
+docker build -t my-app .
+docker tag my-app username/my-app:v1
+docker login
+docker push username/my-app:v1
+
+
+--------------------------------------------------------------------------------
+2.2 DOCKERS & CONTAINERS - SCENARIO B
+--------------------------------------------------------------------------------
+[QUESTION]
+Build custom images within Docker Compose using build contexts.
+
+[FILE: docker-compose.yml]
+```yaml
+version: '3'
+
+services:
+  web:
+    build: ./web
+    ports:
+      - "80:80"
+```
+
+[RUN COMMANDS]
+docker-compose up --build -d
+
+
+--------------------------------------------------------------------------------
+2.3 KUBERNETES - SCENARIO
+--------------------------------------------------------------------------------
+[QUESTION]
+Deploy Version 1, perform rolling update to Version 2, deploy defective version, and rollback.
+
+[FILE: nptel.yaml]
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nptel-app
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: nptel
+  template:
+    metadata:
+      labels:
+        app: nptel
+    spec:
+      containers:
+        - name: app
+          image: nginx:alpine
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 50m
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nptel-svc
+spec:
+  selector:
+    app: nptel
+  ports:
+    - port: 80
+```
+
+[RUN COMMANDS]
+# 1. Deploy V1
+kubectl apply -f nptel.yaml
+
+# 2. Rolling update to V2
+kubectl set image deployment/nptel-app app=httpd:alpine
+
+# 3. Defective update (bad image)
+kubectl set image deployment/nptel-app app=nginx:invalid-tag
+kubectl rollout status deployment/nptel-app
+
+# 4. Rollback
+kubectl rollout undo deployment/nptel-app
+
+
+--------------------------------------------------------------------------------
+2.4 XML & XQUERY - SCENARIO
+--------------------------------------------------------------------------------
+[QUESTION]
+Create data.xml for a real-estate management system.
+
+[FILE: data.xml]
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<real-estate language="EN">
+    <agencies>
+        <agency>
+            <name>ABC Realty</name>
+            <email>abc@realty.com</email>
+            <phone>12345</phone>
+            <address><street>1st Ave</street><pincode>50001</pincode></address>
+            <employee><fname>John</fname><lname>Doe</lname></employee>
+        </agency>
+    </agencies>
+    <owners>
+        <owner idOwner="O1">
+            <name>Jane Smith</name>
+            <address><street>2nd Ave</street><pincode>50002</pincode></address>
+        </owner>
+    </owners>
+    <properties><property id="P1"/></properties>
+    <flats><flat id="F1"/></flats>
+</real-estate>
+```
+
+
+================================================================================
+3. QUESTION PAPER SET 3
+================================================================================
+
+--------------------------------------------------------------------------------
+3.1 DOCKERS & CONTAINERS - SCENARIO A
+--------------------------------------------------------------------------------
+[QUESTION]
+Create custom network and run two containers on it to demonstrate communication.
+
+[RUN COMMANDS]
+docker network create my-net
+docker run -d --name app1 --network my-net nginx:alpine
+docker run --rm --network my-net alpine wget -qO- http://app1
+
+
+--------------------------------------------------------------------------------
+3.2 DOCKERS & CONTAINERS - SCENARIO B
+--------------------------------------------------------------------------------
+[QUESTION]
+Docker Compose running a web application with a Redis database backend (simplest page counter).
+
+[FILE: app.js]
+```javascript
+const express = require('express');
+const redis = require('redis');
+const app = express();
+const client = redis.createClient({ host: 'redis' });
+
+app.get('/', (req, res) => {
+  client.incr('counter', (err, count) => res.send('Views: ' + count));
+});
+
+app.listen(3000);
+```
+
+[FILE: Dockerfile]
+```dockerfile
+FROM node:alpine
+WORKDIR /app
+COPY app.js .
+RUN npm install express redis
+CMD ["node", "app.js"]
+```
+
+[FILE: docker-compose.yml]
+```yaml
+version: '3'
+
+services:
+  web:
+    build: .
+    ports:
+      - "3000:3000"
+
+  redis:
+    image: redis:alpine
+```
+
+[RUN COMMANDS]
+docker-compose up -d
+
+
+--------------------------------------------------------------------------------
+3.3 KUBERNETES - SCENARIO
+--------------------------------------------------------------------------------
+[QUESTION]
+Deploy frontend, patient-service backend with 3 replicas, readiness/liveness probes, and HPA (3 to 6 replicas).
+
+[FILE: hospital.yaml]
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: patient-backend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: patient-backend
+  template:
+    metadata:
+      labels:
+        app: patient-backend
+    spec:
+      containers:
+        - name: backend
+          image: nginx:alpine
+          resources:
+            requests:
+              cpu: 50m
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: patient-backend-svc
+spec:
+  selector:
+    app: patient-backend
+  ports:
+    - port: 80
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: backend-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: patient-backend
+  minReplicas: 3
+  maxReplicas: 6
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 50
+```
+
+[RUN COMMANDS]
+kubectl apply -f hospital.yaml
+kubectl get hpa backend-hpa
+
+
+================================================================================
+4. QUESTION PAPER SET 4
+================================================================================
+
+--------------------------------------------------------------------------------
+4.1 DOCKERS & CONTAINERS - SCENARIO A
+--------------------------------------------------------------------------------
+[QUESTION]
+Build a configurable Node.js application accepting build-time arguments for version and port.
+
+[FILE: app.js]
+```javascript
+console.log('Running App on Port ' + process.env.PORT);
+```
+
+[FILE: Dockerfile]
+```dockerfile
+FROM node:alpine
+ARG PORT_NUMBER=3000
+ENV PORT=${PORT_NUMBER}
+WORKDIR /app
+COPY app.js .
+CMD ["node", "app.js"]
+```
+
+[RUN COMMANDS]
+docker build --build-arg PORT_NUMBER=8080 -t node-app .
+docker run --rm node-app
+
+
+--------------------------------------------------------------------------------
+4.2 DOCKERS & CONTAINERS - SCENARIO B
+--------------------------------------------------------------------------------
+[QUESTION]
+Scale Docker Compose services horizontally.
+
+[RUN COMMANDS]
+docker-compose up -d --scale web=4
+
+
+--------------------------------------------------------------------------------
+4.3 KUBERNETES - SCENARIO
+--------------------------------------------------------------------------------
+[QUESTION]
+Deploy frontend (2 replicas) and APIs (2 replicas each) with CPU limits and configure HPA (2 to 6 replicas).
+
+[FILE: multi-api.yaml]
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: api
+  template:
+    metadata:
+      labels:
+        app: api
+    spec:
+      containers:
+        - name: api
+          image: nginx:alpine
+          resources:
+            requests:
+              cpu: 50m
+            limits:
+              cpu: 100m
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-svc
+spec:
+  selector:
+    app: api
+  ports:
+    - port: 80
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: api-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: api-service
+  minReplicas: 2
+  maxReplicas: 6
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 50
+```
+
+[RUN COMMANDS]
+kubectl apply -f multi-api.yaml
+
+
+--------------------------------------------------------------------------------
+4.4 XML & XQUERY - SCENARIO
+--------------------------------------------------------------------------------
+[QUESTION]
+Create hospital.xml and write XQuery group-by and FLWOR expressions for Multispeciality hospitals.
+
+[FILE: hospital.xml]
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<hospitals>
+    <hospital hospitalID="H1">
+        <name>City Hospital</name>
+        <type>Multispeciality</type>
+        <phone>12345</phone>
+        <address><street>Main Rd</street><pincode>60001</pincode></address>
+        <website>cityh.com</website>
+        <emergencyService available="true"/>
+        <departments deptID="D1">
+            <department>
+                <name>General Medicine</name>
+                <doctorIncharge docID="DOC1"/>
+                <location><floor>1</floor><extension>10</extension></location>
+            </department>
+        </departments>
+        <doctors>
+            <doctor docID="DOC1">
+                <specialty>General Medicine</specialty>
+                <name><fname>John</fname><lname>Doe</lname></name>
+            </doctor>
+        </doctors>
+    </hospital>
+    <hospital hospitalID="H2">
+        <name>Care Clinic</name>
+        <type>Clinic</type>
+        <phone>67890</phone>
+        <address><street>Cross Rd</street><pincode>60002</pincode></address>
+        <website>care.com</website>
+        <emergencyService available="false"/>
+        <departments deptID="D2">
+            <department>
+                <name>Paediatrics</name>
+                <doctorIncharge docID="DOC2"/>
+                <location><floor>2</floor><extension>20</extension></location>
+            </department>
+        </departments>
+        <doctors>
+            <doctor docID="DOC2">
+                <specialty>Paediatrics</specialty>
+                <name><fname>Jane</fname><lname>Smith</lname></name>
+            </doctor>
+        </doctors>
+    </hospital>
+</hospitals>
+```
+
+[FILE: hospital_queries.xq]
+```xquery
+(: Group by type :)
+for $h in doc("hospital.xml")/hospitals/hospital
+group by $type := $h/type
+return <group type="{$type}">{$h/name}</group>
+
+(: FLWOR Multispeciality Filter :)
+for $h in doc("hospital.xml")/hospitals/hospital
+where $h/type = "Multispeciality"
+return $h
+```
+
+
+================================================================================
+5. BONUS: MINIMAL FLASK DOCKER & DOCKER COMPOSE VERSIONS
+================================================================================
+
+--------------------------------------------------------------------------------
+5.1 MINIMAL FLASK DOCKERFILE
+--------------------------------------------------------------------------------
+[FILE: app.py]
+```python
+from flask import Flask
+app = Flask(__name__)
+
+@app.route('/')
+def hello():
+    return "Hello from Flask!"
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
+```
+
+[FILE: Dockerfile]
+```dockerfile
+FROM python:3.10-alpine
+WORKDIR /app
+COPY app.py .
+RUN pip install flask
+CMD ["python", "app.py"]
+```
+
+[RUN COMMANDS]
+docker build -t flask-app .
+docker run -d -p 5000:5000 flask-app
+
+
+--------------------------------------------------------------------------------
+5.2 MINIMAL FLASK + REDIS DOCKER COMPOSE (PAGE COUNTER)
+--------------------------------------------------------------------------------
+[FILE: app.py]
+```python
+from flask import Flask
+from redis import Redis
+
+app = Flask(__name__)
+redis = Redis(host='redis', port=6379)
+
+@app.route('/')
+def hello():
+    count = redis.incr('hits')
+    return f"Page views: {count}"
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
+```
+
+[FILE: Dockerfile]
+```dockerfile
+FROM python:3.10-alpine
+WORKDIR /app
+COPY app.py .
+RUN pip install flask redis
+CMD ["python", "app.py"]
+```
+
+[FILE: docker-compose.yml]
+```yaml
+version: '3'
+
+services:
+  web:
+    build: .
+    ports:
+      - "5000:5000"
+  redis:
+    image: redis:alpine
+```
+
+[RUN COMMANDS]
+docker-compose up -d
+
+================================================================================
+                                END OF FILE
+================================================================================
